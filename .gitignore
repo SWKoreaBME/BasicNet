@@ -1,0 +1,7 @@
+cfg/*
+data/*
+*.mp4
+*.sqlite3
+*.ipynb
+weights
+__pycache__/*
