@@ -83,13 +83,12 @@ class UploadView():
     success_url = '/'
 
 def upload(request):
-    savePath='./media/uploaded.jpg'
+    savePath='./media/input/uploaded.jpg'
     if request.method == 'POST' and request.FILES['myfile']:
         myfile = request.FILES['myfile']
         fs = FileSystemStorage()
         filename = fs.save(myfile.name, myfile)
         uploaded_file_url = fs.url(filename)
-        print(uploaded_file_url)
         # shutil.copyfile('.'+uploaded_file_url, savePath)
         os.rename('.'+uploaded_file_url, savePath)
         return render(request, 'blog/upload.html', {
@@ -117,7 +116,23 @@ def extractName(fileName):
 def ShowResult(request):
 
     clothesIndex = {
-        0 : "leggings"
+        0: "Blazer",
+        1: "Blouse",
+        2: "Button-Down",
+        3: "Cardigan",
+        4: "Coat",
+        5: "Dress",
+        6: "Hoodie",
+        7: "Jacket",
+        8:"Jeans",
+        9:"Leggings",
+        10:"Shorts",
+        11:"Skirt",
+        12:"Sweater",
+        13:"Sweatpants",
+        14:"Sweatshorts",
+        15:"Tee",
+        16:"Turtleneck"
     }
 
     command='python detect.py --image-folder ./media/input --output-folder ./media/output --txt-out True'
@@ -136,7 +151,11 @@ def ShowResult(request):
         # read cropped image path
         resultImagePath = './media/uploaded.jpg'
         croppedImagePath = cropImage(resultImagePath, resultCordinates)
+
+        # cloud 서비스이기 때문에 잠깐 꺼놓기!
+        
         main_colors = read_color(croppedImagePath)
+        # main_colors = (1,1,1)
 
         if len(main_colors) == 3:
             color_R = main_colors[0]
@@ -194,5 +213,6 @@ def ExtractResultIndex(resultImageName, outputFolderPath):
     with open(os.path.join(outputFolderPath, textFilePath)) as textFile:
         for line in textFile:
             resultIndex.append((line.split(' ')[:4], int(line.split(' ')[4]), float(line.split(' ')[5]) * 100 ))
+            # resultIndex.append((line.split(' ')[:4], int(line.split(' ')[4]), line.split(' ')[5] ))
         
     return resultIndex

@@ -7,6 +7,7 @@ from utils.utils import *
 
 from utils import torch_utils
 
+
 def detect(
         net_config_path,
         data_config_path,
@@ -65,8 +66,11 @@ def detect(
 
         # Get detections
         with torch.no_grad():
+            # cv2.imwrite('zidane_416.jpg', 255 * img.transpose((1, 2, 0))[:, :, ::-1])  # letterboxed
             img = torch.from_numpy(img).unsqueeze(0).to(device)
-            # pred = torch.onnx._export(model, img, 'weights/model.onnx', verbose=True,); return  # ONNX export
+            if ONNX_EXPORT:
+                pred = torch.onnx._export(model, img, 'weights/model.onnx', verbose=True);
+                return  # ONNX export
             pred = model(img)
             pred = pred[pred[:, :, 4] > conf_thres]
 
@@ -88,18 +92,17 @@ def detect(
     for img_i, (path, detections) in enumerate(zip(imgs, img_detections)):
         print("image %g: '%s'" % (img_i, path))
 
-        if save_images:
-            img = cv2.imread(path)
-
-        # The amount of padding that was added
-        pad_x = max(img.shape[0] - img.shape[1], 0) * (img_size / max(img.shape))
-        pad_y = max(img.shape[1] - img.shape[0], 0) * (img_size / max(img.shape))
-        # Image height and width after padding is removed
-        unpad_h = img_size - pad_y
-        unpad_w = img_size - pad_x
-
         # Draw bounding boxes and labels of detections
         if detections is not None:
+            img = cv2.imread(path)
+
+            # The amount of padding that was added
+            pad_x = max(img.shape[0] - img.shape[1], 0) * (img_size / max(img.shape))
+            pad_y = max(img.shape[1] - img.shape[0], 0) * (img_size / max(img.shape))
+            # Image height and width after padding is removed
+            unpad_h = img_size - pad_y
+            unpad_w = img_size - pad_x
+
             unique_classes = detections[:, -1].cpu().unique()
             bbox_colors = random.sample(color_list, len(unique_classes))
 
@@ -113,7 +116,7 @@ def detect(
                 n = (detections[:, -1].cpu() == i).sum()
                 print('%g %ss' % (n, classes[int(i)]))
 
-            for index, (x1, y1, x2, y2, conf, cls_conf, cls_pred) in enumerate(detections):
+            for x1, y1, x2, y2, conf, cls_conf, cls_pred in detections:
                 # Rescale coordinates to original dimensions
                 box_h = ((y2 - y1) / unpad_h) * img.shape[0]
                 box_w = ((x2 - x1) / unpad_w) * img.shape[1]
@@ -122,12 +125,6 @@ def detect(
                 x2 = (x1 + box_w).round().item()
                 y2 = (y1 + box_h).round().item()
                 x1, y1, x2, y2 = max(x1, 0), max(y1, 0), max(x2, 0), max(y2, 0)
-
-                # crop images
-                cropped_image = img[int(y1):int(y2), int(x1):int(x2)]
-                label = classes[int(cls_pred)] + str(index+1)
-                image_path = '/home/sangwook/ccp_django_project/media/cropped/croppedImage.jpg'
-                cv2.imwrite(image_path, cropped_image)
 
                 # write to file
                 if save_txt:
@@ -140,12 +137,13 @@ def detect(
                     color = bbox_colors[int(np.where(unique_classes == int(cls_pred))[0])]
                     plot_one_box([x1, y1, x2, y2], img, label=label, color=color)
 
-        if save_images:
-            # Save generated image with detections
-            cv2.imwrite(results_img_path.replace('.bmp', '.jpg').replace('.tif', '.jpg'), img)
+            if save_images:
+                # Save generated image with detections
+                cv2.imwrite(results_img_path.replace('.bmp', '.jpg').replace('.tif', '.jpg'), img)
 
     if platform == 'darwin':  # MacOS (local)
         os.system('open ' + output)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -154,10 +152,10 @@ if __name__ == '__main__':
     parser.add_argument('--image-folder', type=str, default='data/samples', help='path to images')
     parser.add_argument('--output-folder', type=str, default='output', help='path to outputs')
     parser.add_argument('--plot-flag', type=bool, default=True)
-    parser.add_argument('--txt-out', type=bool, default=True)
+    parser.add_argument('--txt-out', type=bool, default=False)
     parser.add_argument('--cfg', type=str, default='cfg/yolov3.cfg', help='cfg file path')
-    parser.add_argument('--data-config', type=str, default='cfg/coco.data', help='path to data config file')
-    parser.add_argument('--weights', type=str, default='weights/yolov3.pt', help='path to weights file')
+    parser.add_argument('--data-config', type=str, default='cfg/fashion.data', help='path to data config file')
+    parser.add_argument('--weights', type=str, default='weights/best.pt', help='path to weights file')
     parser.add_argument('--conf-thres', type=float, default=0.50, help='object confidence threshold')
     parser.add_argument('--nms-thres', type=float, default=0.45, help='iou threshold for non-maximum suppression')
     parser.add_argument('--batch-size', type=int, default=1, help='size of the batches')

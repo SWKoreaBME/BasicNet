@@ -1,0 +1,6 @@
+classes= 17
+train=/home/sangwook/2019_ccp_yolo/FashionData(2019_selected)/FashionTrain.txt
+valid=/home/sangwook/2019_ccp_yolo/FashionData(2019_selected)/FashionVal.txt
+names=./data/fashion.names
+backup=backup/
+eval=fashion
